@@ -10093,11 +10093,25 @@
         }
 
         function historyBack() {
-          if (history.length) {
-            const prevId = history.pop();
+          // Skip splash/login from history — never go back to them
+          const SKIP = ['screen-splash', 'screen-login'];
+          let prevId = null;
+          while (history.length) {
+            const candidate = history.pop();
+            if (!SKIP.includes(candidate)) { prevId = candidate; break; }
+          }
+          if (prevId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(prevId).classList.add('active');
-          } else { navigateTo('dashboard'); }
+            // Sync bottom nav and localStorage
+            const screenKey = Object.keys(SCREEN_MAP).find(k => SCREEN_MAP[k] === prevId);
+            if (screenKey) {
+              updateBottomNav(screenKey);
+              localStorage.setItem('aqwa-last-screen', screenKey);
+            }
+          } else {
+            navigateTo('dashboard');
+          }
         }
 
         function updateBottomNav(key) {
@@ -10862,6 +10876,7 @@
           const lastScreen = localStorage.getItem('aqwa-last-screen');
           if (lastScreen && SCREEN_MAP[lastScreen]) {
             navigateTo(lastScreen);
+            history.length = 0; // clear splash from back stack after restore
           } else {
             navigateTo('splash');
             setTimeout(() => navigateTo('login'), 2800);
